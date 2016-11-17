@@ -1,6 +1,8 @@
 package logic;
 
-public class Position {
+import java.io.Serializable;
+
+public class Position implements Serializable{
 	private int x, y;
 
 	public Position() {
@@ -23,13 +25,23 @@ public class Position {
 	public int getY() {
 		return this.y;
 	}
+	
+	public void set(int x, int y){
+		this.x = x;
+		this.y = y;
+	}
 
+	public void set(Position pos){
+		this.x = pos.x;
+		this.y = pos.y;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + x;
-		result = prime * result + y;
+		result += prime * result + y;
 		return result;
 	}
 

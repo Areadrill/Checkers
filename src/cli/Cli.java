@@ -6,13 +6,10 @@ import java.util.Scanner;
 import logic.Position;
 
 public class Cli {
-	Scanner scanner;
+	private static Scanner scanner = new Scanner(System.in);
 
-	public Cli() {
-		this.scanner = new Scanner(System.in);
-	}
 
-	public int getOption(String[] optionsText) {
+	public static int getOption(String[] optionsText) {
 		for (int i = 1; i <= optionsText.length; i++) {
 			System.out.println(i + ". " + optionsText[i - 1]);
 		}
@@ -30,7 +27,7 @@ public class Cli {
 		return option;
 	}
 
-	public int readInt() {
+	public static int readInt() {
 
 		try {
 			return scanner.nextInt();
@@ -41,20 +38,38 @@ public class Cli {
 
 	}
 
-	// broken
-	public Position getPiecePosition() {
-		int x, y;
-		do {
-			System.out.println("Enter coordinate X of the piece");
-		} while ((x = readInt()) < 0);
-		do {
-			System.out.println("Enter coordinate Y of the piece");
-		} while ((y = readInt()) < 0);
-
-		return new Position(x, y);
+	//Suggestion for improvement: use regular expression
+	public static Position getPosition() {
+		int x = 0, y = 0;
+		System.out.println("Enter the coordinates (x, y) (coordinates range from 1 to 8)");
+			
+		String coordStr = scanner.nextLine();
+		String[] coordsStr = coordStr.split(", ");
+		try{	
+			x = Integer.parseInt(coordsStr[0]);
+			y = Integer.parseInt(coordsStr[1]);
+		}
+		catch(NumberFormatException e){
+			x = -1; // to force triggering the while below 
+		}
+		
+		while(x < 1 || x > 8 || y < 1 || y > 8){
+			System.out.println("Invalid coordinates! Try again");
+			try{	
+				x = Integer.parseInt(coordsStr[0]);
+				y = Integer.parseInt(coordsStr[1]);
+			}
+			catch(NumberFormatException e){
+				x = -1; 
+			}
+		}
+			
+			
+		
+		return new Position(x-1, y-1);
 	}
 
-	public String getLine(String prompt) {
+	public static String getLine(String prompt) {
 		System.out.println(prompt);
 		return scanner.nextLine();
 	}

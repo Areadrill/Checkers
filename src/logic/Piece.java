@@ -1,6 +1,8 @@
 package logic;
 
-public class Piece {
+import java.io.Serializable;
+
+public class Piece implements Serializable{
 	private Player owner;
 	private boolean king;
 	private Position position;
@@ -34,5 +36,9 @@ public class Piece {
 	
 	public Player getPlayer(){
 		return this.owner;
+	}
+	
+	public Position getPosition(){
+		return this.position;
 	}
 }
