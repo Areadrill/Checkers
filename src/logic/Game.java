@@ -1,15 +1,16 @@
 package logic;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import cli.Cli;
 
 public class Game implements Serializable{
 	
-	int currentPlayer;
-	Player[] players;
-	Board board;
+	public int currentPlayer;
+	public Player[] players;
+	public Board board;
 
 	public Game() throws ImpossibleException {
 		currentPlayer = 0;
@@ -17,48 +18,31 @@ public class Game implements Serializable{
 		board = new Board();
 		mainMenu();
 	}
+	
+	public Game(boolean test){
+		currentPlayer = 0;
+		players = new Player[2];
+		board = new Board();
+	}
 
 	public static void main(String[] args) throws ImpossibleException {
 		Game game = new Game();
 	}
 
 	public void mainMenu() throws ImpossibleException {
-		String[] mainMenuOptions = { "New Game", "Load Game", "Tutorial", "Exit" };
+		String[] mainMenuOptions = { "New Game", "Exit" };
 
 		switch (Cli.getOption(mainMenuOptions)) {
 		case 1:
 			startNewGame();
 			break;
 		case 2:
-			loadSavedGame();
-			break;
-		case 3:
-			printTutorial();
-			break;
-		case 4:
 			System.exit(0);
 			break;
 		default:
 			throw new ImpossibleException();
 
 		}
-	}
-
-	public void move() throws ImpossibleException {
-		System.out.println("Coordinates of the piece you want to move");
-		Position currentPos = Cli.getPosition();
-		System.out.println("Coordinates you want to move the Piece to");
-		Position futurePos = Cli.getPosition();
-
-		changePlayer();
-	}
-
-	private void changePlayer() throws ImpossibleException {
-		if (currentPlayer == 1)
-			currentPlayer--;
-		else if (currentPlayer == 1)
-			currentPlayer++;
-		throw new ImpossibleException();
 	}
 
 	public void startNewGame() {
@@ -83,7 +67,7 @@ public class Game implements Serializable{
 		switch(option){
 			case 1:
 				processMove();
-				this.currentPlayer = this.currentPlayer+1 % 2;
+				this.currentPlayer = ((this.currentPlayer+1) % 2);
 				break;
 			case 2:
 				break;
@@ -111,86 +95,164 @@ public class Game implements Serializable{
 			pieceToMove = this.board.getBoard().get(Cli.getPosition());
 		}
 		
+		ArrayList<Position> validPositions;
+		if(this.currentPlayer == 0){
+			validPositions = getAvailablePositions(pieceToMove, Direction.SE, false);
+			validPositions.addAll(getAvailablePositions(pieceToMove, Direction.SW, false));
+		}
+		else{
+			validPositions = getAvailablePositions(pieceToMove, Direction.NE, false);
+			validPositions.addAll(getAvailablePositions(pieceToMove, Direction.NW, false));
+		}
+		
+		
 		System.out.println("Select where you want to move it to:");
 		Position newPos = Cli.getPosition();
-		String validationResult = validateMovement(newPos, pieceToMove); 
 		
-		while(validationResult.equals("invalid")){
-			System.out.println("Invalid play! Try again");
+		while(!validPositions.contains(newPos)){
+			System.out.println("Invalid play! Try again.");
 			newPos = Cli.getPosition();
-			validationResult = validateMovement(newPos, pieceToMove);
 		}
 		
+		this.board.getBoard().remove(pieceToMove).getPosition();
+		pieceToMove.getPosition().set(newPos);
+		this.board.getBoard().put(pieceToMove.getPosition(), pieceToMove);
 		
-		if(validationResult.equals("move")){
-			this.board.getBoard().remove(pieceToMove.getPosition());
-			pieceToMove.getPosition().set(newPos);
-			this.board.getBoard().put(newPos, pieceToMove);
-		}
-		else if(validationResult.equals("capture")){
-			this.board.getBoard().remove(pieceToMove);
-			Position previousPos = pieceToMove.getPosition();
-			erasePieces(previousPos, newPos);
-			pieceToMove.getPosition().set(newPos);
-			this.board.getBoard().put(newPos, pieceToMove);
-		}
 	}
-
 	
-	public String validateMovement(Position pos, Piece piece){
-		
-		//overlapping pieces
-		if(this.board.getBoard().get(pos) != null){
-			return "invalid";
+	public enum Direction{
+		NE, NW, SE, SW
+	}
+	
+	public ArrayList<Position> getAvailablePositions(Piece piece, Direction dir, boolean onlyJumps){
+		ArrayList<Position> validPositions = new ArrayList<Position>();
+		int xIncrement = 0, yIncrement = 0;
+		Position currPos = new Position(piece.getPosition());
+			
+		switch(dir){
+			case NE:
+				xIncrement = 1;
+				yIncrement = -1;
+				break;
+			case NW:
+				xIncrement = -1;
+				yIncrement = -1;
+				break;
+			case SE:
+				xIncrement = 1;
+				yIncrement = 1;
+				break;
+			case SW:
+				xIncrement = -1;
+				yIncrement = 1;
+				break;
+			default:
+				break;
 		}
 		
-		if(piece.getPosition().equals(pos)){
-			return "invalid";
-		}
-		
-		Position pos2 = piece.getPosition();
-		int deltaX = pos.getX()-pos2.getX() , deltaY = pos.getY()-pos2.getY();
-		
-		//non-diagonal movement
-		if(Math.abs(deltaX) != Math.abs(deltaY)){
-			return "invalid";
-		}
-		
-		
-		if(deltaX > 2){
-			if(piece.isKing()){
-				return "capture";
+		boolean finished = false;
+		int distance = 0;
+		while(!finished){
+			currPos.set(currPos.getX()+xIncrement, currPos.getY()+yIncrement);
+			
+			if(currPos.getX() < 0 || currPos.getX() > 7 || currPos.getY() < 0 || currPos.getY() > 7){
+				break;
 			}
-			else return "invalid";
-		}
-		
-		if(deltaX == 2 && !piece.isKing()){
-			Piece opponentPiece = this.board.getBoard().get(new Position(pos2.getX()+deltaX, pos2.getY()+deltaY));
-			if(opponentPiece == null || opponentPiece.getPlayer().equals(this.players[this.currentPlayer])){
-				return "invalid";
+			
+			if(currPos.getX() == 0 || currPos.getX() == 7 || currPos.getY() == 0 || currPos.getY() == 7){
+				finished = true;
+			}
+			
+			Piece p = this.board.getBoard().get(currPos);
+			
+			if(p == null){
+				if(onlyJumps){
+					break;
+				}
+				validPositions.add(currPos);
+				if(++distance > 0 && !piece.isKing()){
+					finished = true;
+				}
+			}
+			else if(p.getPlayer().equals(this.players[this.currentPlayer])){
+				finished = true;
 			}
 			else{
-				return "capture";
+				if(!finished){
+					Position beyondPos = new Position(currPos.getX()+xIncrement, currPos.getY()+yIncrement);
+					
+					Piece p2 = this.board.getBoard().get(beyondPos);
+					if(p2 == null){
+						validPositions.add(beyondPos);
+						if(yIncrement > 0){
+							validPositions.addAll(getAvailablePositions(new Piece(this.players[this.currentPlayer], beyondPos), Direction.SE, true));
+							validPositions.addAll(getAvailablePositions(new Piece(this.players[this.currentPlayer], beyondPos), Direction.SW, true));
+						}
+						else{
+							validPositions.addAll(getAvailablePositions(new Piece(this.players[this.currentPlayer], beyondPos), Direction.NE, true));
+							validPositions.addAll(getAvailablePositions(new Piece(this.players[this.currentPlayer], beyondPos), Direction.NW, true));
+						}
+					}
+				}
+				finished = true;
+			}
+			
+		}
+		
+		
+		return validPositions;
+	}
+	
+	/*public boolean erasePieces(Position pos1, Position pos2){
+		int deltaX = pos1.getX()-pos2.getX() , deltaY = pos1.getY()-pos2.getY();
+		
+		if(deltaX > 0 && deltaY < 0){
+			for(int i = pos1.getY(); i > pos2.getY(); i--){
+				for(int j = pos1.getX(); j < pos2.getX(); j++){
+					Piece p = this.board.getBoard().get(new Position(j, i));
+					if(p != null && !p.getPlayer().equals(this.players[this.currentPlayer])){
+						this.board.getBoard().remove(new Position(j, i));
+						return true;
+					}
+				}
+			}
+		}
+		else if(deltaX > 0 && deltaY > 0){
+			for(int i = pos1.getY(); i < pos2.getY(); i++){
+				for(int j = pos1.getX(); j < pos2.getX(); j++){
+					Piece p = this.board.getBoard().get(new Position(j, i));
+					if(p != null && !p.getPlayer().equals(this.players[this.currentPlayer])){
+						this.board.getBoard().remove(new Position(j, i));
+						return true;
+					}
+				}
+			}
+		}
+		else if(deltaX < 0 && deltaY < 0){
+			for(int i = pos1.getY(); i > pos2.getY(); i--){
+				for(int j = pos1.getX(); j > pos2.getX(); j--){
+					Piece p = this.board.getBoard().get(new Position(j, i));
+					if(p != null && !p.getPlayer().equals(this.players[this.currentPlayer])){
+						this.board.getBoard().remove(new Position(j, i));
+						return true;
+					}
+				}
+			}
+		}
+		else if(deltaX < 0 && deltaY > 0){
+			for(int i = pos1.getY(); i < pos2.getY(); i++){
+				for(int j = pos1.getX(); j > pos2.getX(); j--){
+					Piece p = this.board.getBoard().get(new Position(j, i));
+					if(p != null && !p.getPlayer().equals(this.players[this.currentPlayer])){
+						this.board.getBoard().remove(new Position(j, i));
+						return true;
+					}
+				}
 			}
 		}
 		
-		return "move";
-		
-	}
-	
-	public void erasePieces(Position pos1, Position pos2){
-		int deltaX = pos1.getX()-pos2.getX() , deltaY = pos1.getY()-pos2.getY();
-		
-	}
-	
-	public void loadSavedGame() {
-		System.out.println("Under construction");
-	}
-
-	public void printTutorial() throws ImpossibleException {
-		System.out.println("Under construction");
-		mainMenu();
-	}
+		return false;
+	}*/
 
 	public void initializeBoard(Board brd, Player pl1, Player pl2) {
 		brd.getBoard().clear(); //to guarantee a fresh start

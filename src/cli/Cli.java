@@ -55,6 +55,8 @@ public class Cli {
 		
 		while(x < 1 || x > 8 || y < 1 || y > 8){
 			System.out.println("Invalid coordinates! Try again");
+			coordStr = scanner.nextLine();
+			coordsStr = coordStr.split(", ");
 			try{	
 				x = Integer.parseInt(coordsStr[0]);
 				y = Integer.parseInt(coordsStr[1]);
